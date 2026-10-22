@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.contrib.auth import authenticate
-
+from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
 from .models import Tarea
 # Create your views here.
 
@@ -13,11 +14,8 @@ from .models import Tarea
 #     return HttpResponse("Hola, esta es mi App de Tareas")
 
 def inicio(request):
-    tareas = Tarea.objects.all()
 
-    return render(request, 'tareasapp/inicio.html', {
-        'tareas': tareas
-    }) 
+    return render(request, 'tareasapp/inicio.html')
 
 
 def crear_tarea(request):
@@ -74,15 +72,42 @@ def login_pagina(request):
     return render(request, 'tareasapp/login.html')
 
 class LoginAPIView(APIView):
-    permission_classes=[AllowAny]
+    permission_classes = [AllowAny]
 
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
-        #Validar que se proporcionen el nombre de usuario y la contraseña
+
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
-            return Response({'message': 'Inicio de sesión exitoso'}, status=status.HTTP_200_OK)
+            # Obtiene el token si ya existe, o lo crea si es la primera vez
+            token, _ = Token.objects.get_or_create(user=user)
+            return Response({
+                'token': token.key,
+                'message': 'Inicio de sesión exitoso'
+            }, status=status.HTTP_200_OK)
         else:
-            return Response({'message': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({
+                'message': 'Credenciales inválidas'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+class TareaAPIView(APIView):
+    #Esto es para que solo los usuarios autenticados puedan acceder a esta vista, para ser 
+    #mas especifico, para que solo los usuarios que tengan un token valido puedan acceder a esta vista
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    # Get lista todas las tareas
+    def get(self, request):
+        tareas = Tarea.objects.all()
+        datos = []
+
+        for tarea in tareas:
+            datos.append({
+                'id': tarea.id,
+                'titulo': tarea.titulo,
+                'descripcion': tarea.descripcion,
+                'completada': tarea.completada
+            })
+        return Response(datos, status=status.HTTP_200_OK)           

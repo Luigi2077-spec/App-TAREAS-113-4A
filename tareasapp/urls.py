@@ -14,4 +14,6 @@ urlpatterns = [
 
     #API REST para autenticacion de usuarios
     path('api/login/', views.LoginAPIView.as_view(), name='api_login'),
-]
+    #API REST para tareas
+    path('api/tareas/', views.TareaAPIView.as_view(), name='api_tareas'),
+]   
