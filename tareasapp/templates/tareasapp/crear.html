@@ -8,9 +8,7 @@
 
     <h1>Crear nueva tarea</h1>
 
-    <form method="POST">
-
-        {% csrf_token %}
+    <form id="formTarea">
 
         <label for="titulo">Título:</label>
         <br>
@@ -25,7 +23,7 @@
         <br><br>
 
         <label>
-            <input type="checkbox" name="completada">
+            <input type="checkbox" id="completada" name="completada">
             Tarea completada
         </label>
 
@@ -37,9 +35,76 @@
 
     </form>
 
+    <p id="mensaje"></p>
+
     <br>
 
-    <a href="/">Volver al inicio</a>
+    <a href="{% url 'inicio' %}">Volver al inicio</a>
+
+    <script>
+        const formulario = document.getElementById('formTarea');
+        const mensaje = document.getElementById('mensaje');
+
+        formulario.addEventListener('submit', async function(event) {
+
+            // Evita el envío tradicional del formulario
+            event.preventDefault();
+
+            // Recupera el token obtenido durante el login
+            const token = sessionStorage.getItem('token');
+
+            if (!token) {
+                mensaje.textContent =
+                    'No hay sesión activa. Inicia sesión nuevamente.';
+                return;
+            }
+
+            // Captura los datos del formulario
+            const titulo = document.getElementById('titulo').value;
+            const descripcion = document.getElementById('descripcion').value;
+            const completada = document.getElementById('completada').checked;
+
+            // Construye el objeto que enviaremos a Django
+            const tarea = {
+                titulo: titulo,
+                descripcion: descripcion,
+                completada: completada
+            };
+
+            try {
+                const respuesta = await fetch("{% url 'api_tareas' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Token ${token}`
+                    },
+                    body: JSON.stringify(tarea)
+                });
+
+                const datos = await respuesta.json();
+
+                if (respuesta.ok) {
+                    mensaje.textContent = 'Tarea creada correctamente.';
+
+                    // Redirige a la página que lista las tareas
+                    window.location.href = "{% url 'inicio' %}";
+                } else if (respuesta.status === 401 ||
+                        respuesta.status === 403) {
+                    mensaje.textContent =
+                        'Tu sesión no es válida. Inicia sesión nuevamente.';
+                } else {
+                    mensaje.textContent =
+                        datos.error || 'No se pudo crear la tarea.';
+                }
+
+            } catch (error) {
+                mensaje.textContent =
+                    'Error de conexión con el servidor.';
+                console.error(error);
+            }
+
+        });
+    </script>
 
 </body>
 </html>

@@ -8,12 +8,13 @@ urlpatterns = [
     #Lista de tareas
     path('inicio/', views.inicio, name='inicio'),
     path('crear/', views.crear_tarea, name='crear_tarea'),
-    path('detalle/<int:id>', views.detalle_tarea, name='detalle_tarea'),
-    path('editar/<int:id>', views.editar_tarea, name='editar_tarea'),
-    path('eliminar/<int:id>', views.eliminar_tarea, name='eliminar_tarea'),
+    path('detalle/<int:id>/', views.detalle_tarea, name='detalle_tarea'),
+    path('editar/<int:id>/', views.editar_tarea, name='editar_tarea'),
+    path('eliminar/<int:id>/', views.eliminar_tarea, name='eliminar_tarea'),
 
     #API REST para autenticacion de usuarios
     path('api/login/', views.LoginAPIView.as_view(), name='api_login'),
     #API REST para tareas
     path('api/tareas/', views.TareaAPIView.as_view(), name='api_tareas'),
+    path('api/tareas/<int:id>/', views.TareaDetalleAPIView.as_view(), name='api_tarea_detalle'),
 ]   

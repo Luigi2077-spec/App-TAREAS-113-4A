@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from .models import Tarea
+
 # Create your views here.
 
 # def inicio(request):
@@ -93,6 +94,7 @@ class LoginAPIView(APIView):
             }, status=status.HTTP_401_UNAUTHORIZED)
 
 class TareaAPIView(APIView):
+
     #Esto es para que solo los usuarios autenticados puedan acceder a esta vista, para ser 
     #mas especifico, para que solo los usuarios que tengan un token valido puedan acceder a esta vista
     authentication_classes = [TokenAuthentication]
@@ -110,4 +112,62 @@ class TareaAPIView(APIView):
                 'descripcion': tarea.descripcion,
                 'completada': tarea.completada
             })
-        return Response(datos, status=status.HTTP_200_OK)           
+        return Response(datos, status=status.HTTP_200_OK)    
+
+    def post(self, request):
+        titulo = request.data.get('titulo')
+        descripcion = request.data.get('descripcion')
+        completada = request.data.get('completada', False)
+
+        if not titulo or not descripcion:
+            return Response({
+                'message': 'El título y la descripción son obligatorios'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        #Crear la tarea y guardarla en la base de datos
+        tarea = Tarea.objects.create(
+            titulo=titulo,
+            descripcion=descripcion,
+            completada=completada
+        )
+
+        #Devolver la tarea creada como respuesta
+        return Response({
+            'Mensaje': 'Tarea creada exitosamente',
+            'tarea': {
+                'id': tarea.id,
+                'titulo': tarea.titulo,
+                'descripcion': tarea.descripcion,
+                'completada': tarea.completada
+            }
+        }, status=status.HTTP_201_CREATED)
+class TareaDetalleAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id):
+        try:
+            tarea = Tarea.objects.get(id=id)
+            datos = {
+                'id': tarea.id,
+                'titulo': tarea.titulo,
+                'descripcion': tarea.descripcion,
+                'completada': tarea.completada
+            }
+            return Response(datos, status=status.HTTP_200_OK)
+        except Tarea.DoesNotExist:
+            return Response({
+                'message': 'Tarea no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
+    #Delete: Elimina una tarea por su ID
+    def delete(self, request, id):
+        try:
+            tarea = Tarea.objects.get(id=id)
+            tarea.delete()
+            return Response({
+                'message': 'Tarea eliminada exitosamente'
+            }, status=status.HTTP_200_OK)
+        except Tarea.DoesNotExist:
+            return Response({
+                'message': 'Tarea no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)    
